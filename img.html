@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+		<title>showImages</title>
+		<style type="text/css">
+			.float {
+				float: left;
+				width: 200px;
+				height: 200px;
+				overflow: hidden;
+				border: 1px solid #CCCCCC;
+				border-radius: 10px;
+				padding: 5px;
+				margin: 5px;
+			}
+			
+			img {
+				position: relative;
+			}
+			
+			.result {
+				width: 200px;
+				height: 200px;
+				text-align: center;
+				box-sizing: border-box;
+			}
+			
+			#file_input {
+				display: none;
+			}
+			
+			.delete {
+				width: 200px;
+				height: 200px;
+				position: absolute;
+				text-align: center;
+				line-height: 200px;
+				z-index: 10;
+				font-size: 30px;
+				background-color: rgba(255, 255, 255, 0.8);
+				color: #777;
+				opacity: 0;
+				transition-duration: :0.7s;
+				-webkit-transition-duration: 0.7s;
+			}
+			
+			.delete:hover {
+				cursor: pointer;
+				opacity: 1;
+			}
+		</style>
+		<script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+
+		<body>
+			<div class="container">
+				<button id="select">选择图片</button>
+				<input type="file" id="file_input" multiple/>
+				<!--用input标签并选择type=file，记得带上multiple，不然就只能单选图片了-->
+			</div>
+			<script type="text/javascript">
+				window.onload = function() {
+
+					// 储存所选图片的结果(文件名和base64数据)
+					var dataArr = [];
+					// 获取按钮
+					var oSelect = document.getElementById("select");
+					//  获取输入框
+					var oInput = document.getElementById("file_input");
+
+
+					// 当点击btn的时候
+					oSelect.onclick = function() {
+						// 先将oInput值清空，否则选择图片与上次相同时change事件不会触发  
+						oInput.value = ""; 
+						//清空已选图片  
+						$('.float').remove();
+						//	清空数组
+						dataArr = [];
+						// index归零
+						index = 0;
+						// input调用点击事件
+						// 点击后就会触发选择文件的方法
+						oInput.click();
+					}
+
+					
+
+					// 判断 浏览器是不是支持  FileReader 内置方法
+					if(typeof FileReader === 'undefined') {
+						// 不支持就告诉用户
+						alert("抱歉，你的浏览器不支持 FileReader");
+						// 并且将这个input输入框锁定
+						oInput.setAttribute('disabled', 'disabled');
+					} else {
+						// 如果支持就添加  change 方法，调用 feadFile 方法，
+						// 并且 addEventListener中的第三个参 数是useCapture, 
+						// 一个bool类型。当为false时为冒泡获取(由里向外)，true为capture方式(由外向里)
+						oInput.addEventListener('change', readFile, false);
+					}
+					// 封装   readFile 函数
+					function readFile() {
+						// 获取当前这个 input 上传中的 files 的长度
+						var iLen = this.files.length;
+						// 设置一个数字变量,记录当前 FileReader 的索引
+						var index = 0;
+						// 循环判断这个input上传的文件是不是图片
+						for(var i = 0; i < iLen; i++) {
+
+							// 不是图片就告诉用户
+							if(!oInput['value'].match(/.jpg|.gif|.png|.jpeg|.bmp/i)) {　　 //判断上传文件格式    
+								return alert("上传的图片格式不正确，请重新选择");
+							}
+							// 创建一个  FileReader  对象，保存至 reade r中 
+							var reader = new FileReader();
+
+							// 这样的话就会每次打印到当前的这个 FileReader 对象
+							// 的每一次创建得到的对象内部获取到的所有的方法和属性。
+							// 断点打印有效。
+							/*console.log("1");
+							console.log(reader);
+							console.log("2");*/
+							// 设置这个reader 的 index等于 i
+							// 给这个 创建的实例对象  添加一个index属性
+							reader.index = i;
+							console.log("1");
+							console.log(reader);
+							console.log(this.files[i]);
+							console.log(this.files[i].name);
+							// 通过 readAsDataURL 获取到当前这个实例对象的 图片的url路径地址 
+							reader.readAsDataURL(this.files[i]); //转成base64
+							// 获取到这个上传文件的名字
+							reader.fileName = this.files[i].name;
+							// 当读取操作成功完成时调用
+							reader.onload = function(e) {
+								// 给这个自定义的  imgMsg  添加对象
+								var imgMsg = {
+									// 获取文件名  
+									name: this.fileName,  
+									// reader.readAsDataURL方法执行完后，base64数据储存在reader.result里 
+									base64: this.result 
+								}
+								// 将这个对象push到 dataArr 数组中记录
+								dataArr.push(imgMsg);
+								// 拼接字符串 获得到页面展示的数据
+								result =
+									'<div class="delete">delete</div>' +
+									'<div class="result">' +
+									'<img src="' + this.result + '" alt=""/>' +
+									'</div>';
+								// 
+								var div = document.createElement('div');
+								div.innerHTML = result;
+								div['className'] = 'float';
+								div['index'] = index;
+								document.getElementsByTagName('body')[0].appendChild(div);　　 //插入dom树    
+								var img = div.getElementsByTagName('img')[0];
+								img.onload = function() {
+									var nowHeight = ReSizePic(this); //设置图片大小    
+									var oParent = this.parentNode;
+									oParent.style.display = 'block';
+									if(nowHeight) {
+										oParent.style.paddingTop = (oParent.offsetHeight - nowHeight) / 2 + 'px';
+									}
+								}
+								div.onclick = function() {
+									this.remove(); // 在页面中删除该图片元素  
+									delete dataArr[this.index]; // 删除dataArr对应的数据  
+								}
+								index++;
+							}
+						}
+					}
+					
+				}
+				/*    
+				 用ajax发送fd参数时要告诉jQuery不要去处理发送的数据，    
+				 不要去设置Content-Type请求头才可以发送成功，否则会报“Illegal invocation”的错误，    
+				 也就是非法调用，所以要加上“processData: false,contentType: false,”    
+				 * */
+				function ReSizePic(ThisPic) {
+					var RePicWidth = 200; //这里修改为您想显示的宽度值    
+					var TrueWidth = ThisPic.width; //图片实际宽度    
+					var TrueHeight = ThisPic.height; //图片实际高度    
+					if(TrueWidth > TrueHeight) {
+						//宽大于高    
+						var reWidth = RePicWidth;
+						ThisPic.width = reWidth;
+						//垂直居中    
+						var nowHeight = TrueHeight * (reWidth / TrueWidth);
+						return nowHeight; //将图片修改后的高度返回，供垂直居中用    
+					} else {
+						//宽小于高    
+						var reHeight = RePicWidth;
+						ThisPic.height = reHeight;
+					}
+				}
+			</script>
+		</body>
+
+</html>
